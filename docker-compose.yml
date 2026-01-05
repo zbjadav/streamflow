@@ -1,0 +1,32 @@
+
+version: "3.9"
+services:
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: streamflow
+    volumes:
+      - mysql_data:/var/lib/mysql
+  backend:
+    build: ./backend
+    env_file:
+      - ./backend/.env.example
+    volumes:
+      - ./media:/media
+    depends_on:
+      - mysql
+  frontend:
+    build: ./frontend
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - frontend
+      - backend
+volumes:
+  mysql_data:

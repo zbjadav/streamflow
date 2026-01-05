@@ -1,1 +1,3 @@
-# streamflow
+# StreamFlow
+
+Full GitHub-ready release.
