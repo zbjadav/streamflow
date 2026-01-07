@@ -1,18 +1,14 @@
 #!/bin/bash
 set -e
 
-echo "🚀 StreamFlow VPS Deployment Started"
+echo "🚀 StreamFlow single-command deployment starting..."
 
-# -----------------------------
-# CONFIG (EDIT THESE)
-# -----------------------------
-APP_NAME="streamflow"
+# ---- CONFIG ----
 APP_DIR="/opt/streamflow"
-GIT_REPO="https://github.com/YOUR_USERNAME/streamflow.git"
+REPO_URL="https://github.com/YOUR_USERNAME/streamflow.git"
+DOMAIN="yourdomain.com"
+# ----------------
 
-# -----------------------------
-# SYSTEM PREP
-# -----------------------------
 echo "📦 Updating system..."
 apt update -y && apt upgrade -y
 
@@ -21,68 +17,31 @@ if ! command -v docker &> /dev/null; then
   curl -fsSL https://get.docker.com | sh
 fi
 
-echo "🐳 Installing Docker Compose..."
-if ! docker compose version &> /dev/null; then
-  apt install docker-compose-plugin -y
-fi
+echo "📦 Installing Docker Compose..."
+apt install -y docker-compose-plugin git
 
-# -----------------------------
-# CLONE REPO
-# -----------------------------
-echo "📥 Cloning StreamFlow..."
-mkdir -p /opt
-cd /opt
+echo "📁 Cloning repository..."
+rm -rf $APP_DIR
+git clone $REPO_URL $APP_DIR
+cd $APP_DIR
 
-if [ -d "$APP_DIR" ]; then
-  echo "🔁 Updating existing repo"
-  cd $APP_DIR
-  git pull
-else
-  git clone $GIT_REPO
-  cd $APP_NAME
-fi
-
-# -----------------------------
-# ENV SETUP
-# -----------------------------
-echo "⚙️ Setting environment variables..."
-
+echo "⚙️ Preparing environment..."
 if [ ! -f backend/.env ]; then
   cp backend/.env.example backend/.env
-
-  sed -i "s/JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/" backend/.env
-  sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=$(openssl rand -hex 16)/" backend/.env
+  sed -i "s/change_me/$(openssl rand -hex 32)/g" backend/.env
 fi
 
-# -----------------------------
-# DOCKER BUILD & RUN
-# -----------------------------
 echo "🐳 Building containers..."
 docker compose build
 
-echo "🚀 Starting StreamFlow..."
+echo "▶️ Starting services..."
 docker compose up -d
 
-# -----------------------------
-# FIREWALL (SAFE DEFAULTS)
-# -----------------------------
-echo "🔥 Configuring firewall..."
-ufw allow 22
-ufw allow 80
-ufw allow 443
-ufw allow 1935
-ufw --force enable
+echo "🔄 Enabling auto-start..."
+docker update --restart unless-stopped $(docker ps -q)
 
-# -----------------------------
-# DONE
-# -----------------------------
-IP=$(curl -s ifconfig.me)
-
-echo "✅ DEPLOYMENT COMPLETE"
-echo "🌐 Access your platform:"
-echo "   http://$IP"
+echo "✅ Deployment complete!"
 echo ""
-echo "📦 App directory: $APP_DIR"
-echo "🐳 Docker running: docker compose ps"
-echo ""
-echo "🏁 StreamFlow is LIVE"
+echo "🌐 Access:"
+echo "Frontend: http://YOUR_VPS_IP"
+echo "API:      http://YOUR_VPS_IP/api"
